@@ -208,9 +208,9 @@
             <circle id="nucleus" cx="400" cy="300" r="220" />
             
             <!-- 左右兩側新核膜 (State 4, 5 開始形成) -->
-            <!-- 【修改點 1】將核膜的半徑由 145 加大至 170，提供更完整的包覆空間 -->
-            <circle id="nucleus-left" class="nucleus-side" cx="200" cy="300" r="170" opacity="0" />
-            <circle id="nucleus-right" class="nucleus-side" cx="600" cy="300" r="170" opacity="0" />
+            <!-- 【恢復原本尺寸】將核膜的半徑恢復為精緻的 145 -->
+            <circle id="nucleus-left" class="nucleus-side" cx="200" cy="300" r="145" opacity="0" />
+            <circle id="nucleus-right" class="nucleus-side" cx="600" cy="300" r="145" opacity="0" />
 
             <g id="chromosome-A" class="chromosome">
                 <g class="sister-left"><use href="#chromatid-long" style="color: #164e9e;" /><text x="0" y="-43" class="gene-text">A</text></g>
@@ -348,7 +348,7 @@
             const nucLeft = document.getElementById('nucleus-left'); // 左新核膜
             const nucRight = document.getElementById('nucleus-right'); // 右新核膜
 
-            // 控制母核膜 (State 0, 1 可見)
+            // 處理中央母核膜 (State 0, 1 可見)
             if (stateIndex === 0) {
                 nucleus.style.opacity = "1";
                 nucleus.style.transform = "scale(0.85)";
@@ -370,15 +370,15 @@
                 nucLeft.style.transform = "scale(0.7)";
                 nucRight.style.transform = "scale(0.7)";
             } else if (stateIndex === 4) {
-                // State 4: 虛線淡入，正在形成
+                // State 4: 虛線淡入，直接以最終大小出現，不再放大
                 nucLeft.style.opacity = "1";
                 nucRight.style.opacity = "1";
-                nucLeft.style.transform = "scale(0.85)";
-                nucRight.style.transform = "scale(0.85)";
+                nucLeft.style.transform = "scale(1)";
+                nucRight.style.transform = "scale(1)";
                 nucLeft.style.strokeDasharray = "8 8";
                 nucRight.style.strokeDasharray = "8 8";
             } else if (stateIndex === 5) {
-                // State 5: 實線完成，擴展為正常大小
+                // State 5: 核膜實線完全成形 (大小保持不變，僅做虛線變實線的切換)
                 nucLeft.style.opacity = "1";
                 nucRight.style.opacity = "1";
                 nucLeft.style.transform = "scale(1)";
