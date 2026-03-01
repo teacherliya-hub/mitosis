@@ -3,7 +3,7 @@
 <head>
     <meta charset="UTF-8">
     <meta name="viewport" content="width=device-width, initial-scale=1.0">
-    <title>細胞分裂模擬器 (有絲分裂版)</title>
+    <title>減數分裂模擬器 </title>
     <style>
         :root {
             --main-bg: #f0f2f5;      
@@ -13,8 +13,8 @@
             --membrane-fill: #e2e8f0;   
             --membrane-stroke: #334155; 
             
-            --btn-color: #10b981; 
-            --btn-hover: #059669;
+            --btn-color: #3b82f6;
+            --btn-hover: #2563eb;
         }
 
         body {
@@ -69,8 +69,8 @@
         #instruction-box {
             width: 100%;
             max-width: min(800px, calc(55vh * 4 / 3)); 
-            background-color: #bbf7d0; 
-            color: #14532d;
+            background-color: #fef08a;
+            color: #854d0e;
             padding: 14px;
             border-radius: 8px;
             margin-top: 15px;
@@ -166,13 +166,13 @@
 <body>
 
     <header>
-        <h1>🔬 細胞分裂模擬器 (有絲分裂版)</h1>
+        <h1>🔬 減數分裂模擬器 (遺傳建模版)</h1>
     </header>
 
     <div id="canvas-container">
         <svg viewBox="0 0 800 600">
             <defs>
-                <!-- 解決殘存黑線的核心：加入 filterUnits="userSpaceOnUse" 並給予絕對的寬高緩衝區 -->
+                <!-- 加入 userSpaceOnUse 與極大範圍，杜絕 Chrome 手機平板殘影 -->
                 <filter id="goo" filterUnits="userSpaceOnUse" x="-200" y="-200" width="1200" height="1000" color-interpolation-filters="sRGB">
                     <feGaussianBlur in="SourceGraphic" stdDeviation="12" result="blur" />
                     <feColorMatrix in="blur" mode="matrix" values="
@@ -247,7 +247,7 @@
 
         const stateData = [
             {   
-                infoText: "State 0: 準備期 (4條單體染色體, 基因型 AaBb)",
+                infoText: "State 0: 準備期 (4條染色體, 基因型 AaBb)",
                 chrA: { x: 335, y: 245, rot: -25, spread: 0, splitDist: 0 },
                 chra: { x: 460, y: 240, rot: 35,  spread: 0, splitDist: 0 },
                 chrB: { x: 350, y: 380, rot: -50, spread: 0, splitDist: 0 },
@@ -258,7 +258,7 @@
                 ]
             },
             {   
-                infoText: "State 1: 染色體複製 (DNA 數量加倍，形成 X 型)",
+                infoText: "State 1: 染色體複製 (DNA 數量加倍)",
                 chrA: { x: 335, y: 245, rot: -25, spread: 15, splitDist: 0 },
                 chra: { x: 460, y: 240, rot: 35,  spread: 15, splitDist: 0 },
                 chrB: { x: 350, y: 380, rot: -50, spread: 15, splitDist: 0 },
@@ -269,36 +269,47 @@
                 ]
             },
             {   
-                infoText: "State 2: 分裂中期 - 所有染色體單獨排列於細胞中央 (無同源配對)",
-                chrA: { x: 400, y: 150, rot: 0, spread: 15, splitDist: 0 }, 
-                chrb: { x: 400, y: 250, rot: 0, spread: 15, splitDist: 0 },
-                chra: { x: 400, y: 350, rot: 0, spread: 15, splitDist: 0 },
-                chrB: { x: 400, y: 450, rot: 0, spread: 15, splitDist: 0 },
+                infoText: "State 2: 第一次分裂 - 同源染色體配對並排列",
+                chrA: { x: 360, y: 200, rot: 0, spread: 15, splitDist: 0 },
+                chra: { x: 440, y: 200, rot: 0, spread: 15, splitDist: 0 },
+                chrB: { x: 360, y: 380, rot: 0, spread: 15, splitDist: 0 },
+                chrb: { x: 440, y: 380, rot: 0, spread: 15, splitDist: 0 },
                 blobs: [
-                    { cx: 380, cy: 300, r: 250 }, { cx: 380, cy: 300, r: 250 },
-                    { cx: 420, cy: 300, r: 250 }, { cx: 420, cy: 300, r: 250 }
+                    { cx: 380, cy: 260, r: 190 }, { cx: 380, cy: 340, r: 190 },
+                    { cx: 420, cy: 260, r: 190 }, { cx: 420, cy: 340, r: 190 }
                 ]
             },
             {   
-                infoText: "State 3: 分裂後期 - 著絲點斷裂，姊妹染色分體分離並移向兩極",
-                chrA: { x: 400, y: 150, rot: 0, spread: 0, splitDist: 140 }, 
-                chrb: { x: 400, y: 250, rot: 0, spread: 0, splitDist: 140 },
-                chra: { x: 400, y: 350, rot: 0, spread: 0, splitDist: 140 },
-                chrB: { x: 400, y: 450, rot: 0, spread: 0, splitDist: 140 },
+                infoText: "State 3: 第一次分裂 - 同源染色體分離 (等位基因 A/a 分離)",
+                chrA: { x: 250, y: 200, rot: 0, spread: 15, splitDist: 0 },
+                chra: { x: 550, y: 200, rot: 0, spread: 15, splitDist: 0 },
+                chrB: { x: 250, y: 380, rot: 0, spread: 15, splitDist: 0 },
+                chrb: { x: 550, y: 380, rot: 0, spread: 15, splitDist: 0 },
                 blobs: [ 
-                    { cx: 250, cy: 220, r: 200 }, { cx: 250, cy: 380, r: 200 },
-                    { cx: 550, cy: 220, r: 200 }, { cx: 550, cy: 380, r: 200 }
+                    { cx: 250, cy: 250, r: 180 }, { cx: 250, cy: 350, r: 180 },
+                    { cx: 550, cy: 250, r: 180 }, { cx: 550, cy: 350, r: 180 }
                 ]
             },
             {   
-                infoText: "State 4: 分裂完成！產生 2 個雙套 (2n) 子細胞，大小恢復圓形，染色體重組為雙排",
-                chrA: { x: 360, y: 220, rot: 0, spread: 0, splitDist: 200 }, 
-                chra: { x: 440, y: 220, rot: 0, spread: 0, splitDist: 200 },
-                chrB: { x: 360, y: 380, rot: 0, spread: 0, splitDist: 200 },
-                chrb: { x: 440, y: 380, rot: 0, spread: 0, splitDist: 200 },
+                infoText: "State 4: 第二次分裂準備 - 染色體再次排列 (此時已無同源染色體)",
+                chrA: { x: 200, y: 300, rot: 0, spread: 15, splitDist: 0 },
+                chrB: { x: 260, y: 300, rot: 0, spread: 15, splitDist: 0 },
+                chra: { x: 540, y: 300, rot: 0, spread: 15, splitDist: 0 },
+                chrb: { x: 600, y: 300, rot: 0, spread: 15, splitDist: 0 },
                 blobs: [ 
-                    { cx: 200, cy: 300, r: 180 }, { cx: 200, cy: 300, r: 180 },
-                    { cx: 600, cy: 300, r: 180 }, { cx: 600, cy: 300, r: 180 }
+                    { cx: 230, cy: 220, r: 150 }, { cx: 230, cy: 380, r: 150 },
+                    { cx: 570, cy: 220, r: 150 }, { cx: 570, cy: 380, r: 150 }
+                ]
+            },
+            {   
+                infoText: "State 5: 分裂完成！產生 4 個單套 (n) 配子，基因型為 AB, AB, ab, ab",
+                chrA: { x: 160, y: 300, rot: 0, spread: 0, splitDist: 140 }, 
+                chrB: { x: 220, y: 300, rot: 0, spread: 0, splitDist: 140 },
+                chra: { x: 580, y: 300, rot: 0, spread: 0, splitDist: 140 },
+                chrb: { x: 640, y: 300, rot: 0, spread: 0, splitDist: 140 },
+                blobs: [ 
+                    { cx: 190, cy: 160, r: 110 }, { cx: 190, cy: 440, r: 110 },
+                    { cx: 610, cy: 160, r: 110 }, { cx: 610, cy: 440, r: 110 }
                 ]
             }
         ];
@@ -346,8 +357,8 @@
                 }
 
                 if (chrConf.splitDist > 0) {
-                    sisLeft.style.transform = `translate(-${chrConf.splitDist}px, 0px) rotate(0deg)`;
-                    sisRight.style.transform = `translate(${chrConf.splitDist}px, 0px) rotate(0deg)`;
+                    sisLeft.style.transform = `translate(0px, -${chrConf.splitDist}px) rotate(0deg)`;
+                    sisRight.style.transform = `translate(0px, ${chrConf.splitDist}px) rotate(0deg)`;
                 } else {
                     sisLeft.style.transform = `rotate(-${chrConf.spread}deg)`;
                     sisRight.style.transform = `rotate(${chrConf.spread}deg)`;
@@ -355,7 +366,7 @@
             });
 
             document.getElementById('btn-prev').disabled = (stateIndex === 0);
-            document.getElementById('btn-next').disabled = (stateIndex === 4);
+            document.getElementById('btn-next').disabled = (stateIndex === 5);
         }
 
         document.getElementById('btn-prev').addEventListener('click', () => {
@@ -366,7 +377,7 @@
         });
 
         document.getElementById('btn-next').addEventListener('click', () => {
-            if (currentState < 4) {
+            if (currentState < 5) {
                 currentState++;
                 renderState(currentState);
             }
