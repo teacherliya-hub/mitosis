@@ -3,7 +3,7 @@
 <head>
     <meta charset="UTF-8">
     <meta name="viewport" content="width=device-width, initial-scale=1.0">
-    <title>減數分裂模擬器 </title>
+    <title>細胞分裂模擬器 (有絲分裂版)</title>
     <style>
         :root {
             --main-bg: #f0f2f5;      
@@ -13,8 +13,8 @@
             --membrane-fill: #e2e8f0;   
             --membrane-stroke: #334155; 
             
-            --btn-color: #3b82f6;
-            --btn-hover: #2563eb;
+            --btn-color: #10b981; 
+            --btn-hover: #059669;
         }
 
         body {
@@ -58,6 +58,8 @@
             overflow: hidden;
             position: relative;
             border: 1px solid #e5e7eb;
+            /* 強制硬體加速，防止部分舊平板的重繪 Bug */
+            transform: translateZ(0); 
         }
 
         svg {
@@ -69,8 +71,8 @@
         #instruction-box {
             width: 100%;
             max-width: min(800px, calc(55vh * 4 / 3)); 
-            background-color: #fef08a;
-            color: #854d0e;
+            background-color: #bbf7d0; 
+            color: #14532d;
             padding: 14px;
             border-radius: 8px;
             margin-top: 15px;
@@ -133,6 +135,11 @@
             transition: all 1.8s cubic-bezier(0.4, 0, 0.2, 1);
         }
 
+        /* 提示瀏覽器此區塊會有濾鏡變化，請獨立分配 GPU 資源 */
+        #membrane-group {
+            will-change: filter;
+        }
+
         #nucleus {
             transition: opacity 0.4s ease-out, transform 0.4s ease-out;
             fill: rgba(56, 189, 248, 0.1);
@@ -166,25 +173,36 @@
 <body>
 
     <header>
-        <h1>🔬 減數分裂模擬器 (遺傳建模版)</h1>
+        <h1>🔬 細胞分裂模擬器 (有絲分裂版)</h1>
     </header>
 
     <div id="canvas-container">
         <svg viewBox="0 0 800 600">
             <defs>
-                <!-- 加入 userSpaceOnUse 與極大範圍，杜絕 Chrome 手機平板殘影 -->
-                <filter id="goo" filterUnits="userSpaceOnUse" x="-200" y="-200" width="1200" height="1000" color-interpolation-filters="sRGB">
+                <!-- 
+                    【神級效能修復】：完全拔除 Bug 來源的 feMorphology！
+                    改用兩層 feColorMatrix 堆疊：一層大的是邊框，一層小的是細胞質，
+                    並使用超大安全範圍 x="-50%" width="200%" 保證絕對不切邊。
+                -->
+                <filter id="goo" x="-50%" y="-50%" width="200%" height="200%" color-interpolation-filters="sRGB">
                     <feGaussianBlur in="SourceGraphic" stdDeviation="12" result="blur" />
-                    <feColorMatrix in="blur" mode="matrix" values="
+                    
+                    <!-- 1. 外層邊框 (較大)：將顏色強制轉為 #334155 (R:0.20, G:0.25, B:0.33) -->
+                    <feColorMatrix in="blur" type="matrix" values="
+                        0 0 0 0 0.20  
+                        0 0 0 0 0.25  
+                        0 0 0 0 0.33  
+                        0 0 0 25 -7" result="stroke" />
+                        
+                    <!-- 2. 內層細胞質 (較小)：保留原始 fill 顏色，但縮小範圍 -->
+                    <feColorMatrix in="blur" type="matrix" values="
                         1 0 0 0 0  
                         0 1 0 0 0  
                         0 0 1 0 0  
-                        0 0 0 20 -9" result="goo" />
-                    <feMorphology in="goo" operator="dilate" radius="4" result="thick_goo" />
-                    <feGaussianBlur in="thick_goo" stdDeviation="1" result="smoothed_thick" />
-                    <feFlood flood-color="#334155" result="stroke_color" />
-                    <feComposite in="stroke_color" in2="smoothed_thick" operator="in" result="stroke" />
-                    <feComposite in="goo" in2="stroke" operator="over" />
+                        0 0 0 25 -10" result="body" />
+                        
+                    <!-- 3. 疊加：將細胞質蓋在邊框上面 -->
+                    <feComposite in="body" in2="stroke" operator="over" />
                 </filter>
 
                 <g id="chromatid-long">
@@ -202,7 +220,8 @@
                 </g>
             </defs>
 
-            <g filter="url(#goo)">
+            <!-- 加上 id 以利 CSS 呼叫硬體加速 -->
+            <g id="membrane-group" filter="url(#goo)">
                 <circle id="blob1" class="blob" />
                 <circle id="blob2" class="blob" />
                 <circle id="blob3" class="blob" />
@@ -247,7 +266,7 @@
 
         const stateData = [
             {   
-                infoText: "State 0: 準備期 (4條染色體, 基因型 AaBb)",
+                infoText: "State 0: 準備期 (4條單體染色體, 基因型 AaBb)",
                 chrA: { x: 335, y: 245, rot: -25, spread: 0, splitDist: 0 },
                 chra: { x: 460, y: 240, rot: 35,  spread: 0, splitDist: 0 },
                 chrB: { x: 350, y: 380, rot: -50, spread: 0, splitDist: 0 },
@@ -258,7 +277,7 @@
                 ]
             },
             {   
-                infoText: "State 1: 染色體複製 (DNA 數量加倍)",
+                infoText: "State 1: 染色體複製 (DNA 數量加倍，形成 X 型)",
                 chrA: { x: 335, y: 245, rot: -25, spread: 15, splitDist: 0 },
                 chra: { x: 460, y: 240, rot: 35,  spread: 15, splitDist: 0 },
                 chrB: { x: 350, y: 380, rot: -50, spread: 15, splitDist: 0 },
@@ -269,47 +288,36 @@
                 ]
             },
             {   
-                infoText: "State 2: 第一次分裂 - 同源染色體配對並排列",
-                chrA: { x: 360, y: 200, rot: 0, spread: 15, splitDist: 0 },
-                chra: { x: 440, y: 200, rot: 0, spread: 15, splitDist: 0 },
-                chrB: { x: 360, y: 380, rot: 0, spread: 15, splitDist: 0 },
-                chrb: { x: 440, y: 380, rot: 0, spread: 15, splitDist: 0 },
+                infoText: "State 2: 分裂中期 - 所有染色體單獨排列於細胞中央 (無同源配對)",
+                chrA: { x: 400, y: 150, rot: 0, spread: 15, splitDist: 0 }, 
+                chrb: { x: 400, y: 250, rot: 0, spread: 15, splitDist: 0 },
+                chra: { x: 400, y: 350, rot: 0, spread: 15, splitDist: 0 },
+                chrB: { x: 400, y: 450, rot: 0, spread: 15, splitDist: 0 },
                 blobs: [
-                    { cx: 380, cy: 260, r: 190 }, { cx: 380, cy: 340, r: 190 },
-                    { cx: 420, cy: 260, r: 190 }, { cx: 420, cy: 340, r: 190 }
+                    { cx: 380, cy: 300, r: 250 }, { cx: 380, cy: 300, r: 250 },
+                    { cx: 420, cy: 300, r: 250 }, { cx: 420, cy: 300, r: 250 }
                 ]
             },
             {   
-                infoText: "State 3: 第一次分裂 - 同源染色體分離 (等位基因 A/a 分離)",
-                chrA: { x: 250, y: 200, rot: 0, spread: 15, splitDist: 0 },
-                chra: { x: 550, y: 200, rot: 0, spread: 15, splitDist: 0 },
-                chrB: { x: 250, y: 380, rot: 0, spread: 15, splitDist: 0 },
-                chrb: { x: 550, y: 380, rot: 0, spread: 15, splitDist: 0 },
+                infoText: "State 3: 分裂後期 - 著絲點斷裂，姊妹染色分體分離並移向兩極",
+                chrA: { x: 400, y: 150, rot: 0, spread: 0, splitDist: 140 }, 
+                chrb: { x: 400, y: 250, rot: 0, spread: 0, splitDist: 140 },
+                chra: { x: 400, y: 350, rot: 0, spread: 0, splitDist: 140 },
+                chrB: { x: 400, y: 450, rot: 0, spread: 0, splitDist: 140 },
                 blobs: [ 
-                    { cx: 250, cy: 250, r: 180 }, { cx: 250, cy: 350, r: 180 },
-                    { cx: 550, cy: 250, r: 180 }, { cx: 550, cy: 350, r: 180 }
+                    { cx: 250, cy: 220, r: 200 }, { cx: 250, cy: 380, r: 200 },
+                    { cx: 550, cy: 220, r: 200 }, { cx: 550, cy: 380, r: 200 }
                 ]
             },
             {   
-                infoText: "State 4: 第二次分裂準備 - 染色體再次排列 (此時已無同源染色體)",
-                chrA: { x: 200, y: 300, rot: 0, spread: 15, splitDist: 0 },
-                chrB: { x: 260, y: 300, rot: 0, spread: 15, splitDist: 0 },
-                chra: { x: 540, y: 300, rot: 0, spread: 15, splitDist: 0 },
-                chrb: { x: 600, y: 300, rot: 0, spread: 15, splitDist: 0 },
+                infoText: "State 4: 分裂完成！產生 2 個雙套 (2n) 子細胞，大小恢復圓形，染色體重組為雙排",
+                chrA: { x: 360, y: 220, rot: 0, spread: 0, splitDist: 200 }, 
+                chra: { x: 440, y: 220, rot: 0, spread: 0, splitDist: 200 },
+                chrB: { x: 360, y: 380, rot: 0, spread: 0, splitDist: 200 },
+                chrb: { x: 440, y: 380, rot: 0, spread: 0, splitDist: 200 },
                 blobs: [ 
-                    { cx: 230, cy: 220, r: 150 }, { cx: 230, cy: 380, r: 150 },
-                    { cx: 570, cy: 220, r: 150 }, { cx: 570, cy: 380, r: 150 }
-                ]
-            },
-            {   
-                infoText: "State 5: 分裂完成！產生 4 個單套 (n) 配子，基因型為 AB, AB, ab, ab",
-                chrA: { x: 160, y: 300, rot: 0, spread: 0, splitDist: 140 }, 
-                chrB: { x: 220, y: 300, rot: 0, spread: 0, splitDist: 140 },
-                chra: { x: 580, y: 300, rot: 0, spread: 0, splitDist: 140 },
-                chrb: { x: 640, y: 300, rot: 0, spread: 0, splitDist: 140 },
-                blobs: [ 
-                    { cx: 190, cy: 160, r: 110 }, { cx: 190, cy: 440, r: 110 },
-                    { cx: 610, cy: 160, r: 110 }, { cx: 610, cy: 440, r: 110 }
+                    { cx: 200, cy: 300, r: 180 }, { cx: 200, cy: 300, r: 180 },
+                    { cx: 600, cy: 300, r: 180 }, { cx: 600, cy: 300, r: 180 }
                 ]
             }
         ];
@@ -357,8 +365,8 @@
                 }
 
                 if (chrConf.splitDist > 0) {
-                    sisLeft.style.transform = `translate(0px, -${chrConf.splitDist}px) rotate(0deg)`;
-                    sisRight.style.transform = `translate(0px, ${chrConf.splitDist}px) rotate(0deg)`;
+                    sisLeft.style.transform = `translate(-${chrConf.splitDist}px, 0px) rotate(0deg)`;
+                    sisRight.style.transform = `translate(${chrConf.splitDist}px, 0px) rotate(0deg)`;
                 } else {
                     sisLeft.style.transform = `rotate(-${chrConf.spread}deg)`;
                     sisRight.style.transform = `rotate(${chrConf.spread}deg)`;
@@ -366,7 +374,7 @@
             });
 
             document.getElementById('btn-prev').disabled = (stateIndex === 0);
-            document.getElementById('btn-next').disabled = (stateIndex === 5);
+            document.getElementById('btn-next').disabled = (stateIndex === 4);
         }
 
         document.getElementById('btn-prev').addEventListener('click', () => {
@@ -377,7 +385,7 @@
         });
 
         document.getElementById('btn-next').addEventListener('click', () => {
-            if (currentState < 5) {
+            if (currentState < 4) {
                 currentState++;
                 renderState(currentState);
             }
@@ -392,5 +400,3 @@
     </script>
 </body>
 </html>
-
-
