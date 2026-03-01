@@ -13,7 +13,7 @@
             --membrane-fill: #e2e8f0;   
             --membrane-stroke: #334155; 
             
-            --btn-color: #10b981; /* 換成綠色系按鈕以利區分模擬器 */
+            --btn-color: #10b981; 
             --btn-hover: #059669;
         }
 
@@ -24,8 +24,9 @@
             display: flex;
             flex-direction: column;
             align-items: center;
+            justify-content: center; /* 讓整體內容在有額外空間時垂直置中 */
             margin: 0;
-            padding: 20px;
+            padding: 2vmin;
             box-sizing: border-box;
             min-height: 100vh;
         }
@@ -37,22 +38,25 @@
 
         h1 {
             margin: 0;
-            font-size: 24px;
+            font-size: 22px;
             letter-spacing: 1px;
             color: var(--text-main);
+            transition: all 0.3s ease;
         }
 
         @media (min-width: 600px) {
-            h1 { font-size: 28px; }
+            h1 { font-size: 26px; }
         }
 
+        /* --- 響應式魔法核心 --- 
+           保證寬度最大不超過 800px，且高度絕對不超過螢幕的 55vh (留空間給標題和按鈕) */
         #canvas-container {
             width: 100%;
-            max-width: 800px;
+            max-width: min(800px, calc(55vh * 4 / 3)); 
             aspect-ratio: 4/3; 
             background-color: var(--canvas-bg); 
             border-radius: 12px;
-            box-shadow: 0 10px 30px rgba(0, 0, 0, 0.1); 
+            box-shadow: 0 8px 20px rgba(0, 0, 0, 0.08); 
             overflow: hidden;
             position: relative;
             border: 1px solid #e5e7eb;
@@ -66,32 +70,32 @@
 
         #instruction-box {
             width: 100%;
-            max-width: 800px;
-            background-color: #bbf7d0; /* 換成淺綠色提示框區分 */
+            max-width: min(800px, calc(55vh * 4 / 3)); /* 寬度與畫布連動貼齊 */
+            background-color: #bbf7d0; 
             color: #14532d;
-            padding: 16px;
+            padding: 14px;
             border-radius: 8px;
             margin-top: 15px;
             font-weight: 800;
-            font-size: 1.1rem;
+            font-size: 1.05rem;
             text-align: center;
             box-sizing: border-box;
             box-shadow: 0 4px 6px rgba(0, 0, 0, 0.05);
-            transition: all 0.3s;
+            transition: all 0.3s ease;
         }
 
         #controls {
-            margin-top: 20px;
+            margin-top: 15px;
             display: flex;
             flex-wrap: wrap;
             justify-content: center;
             gap: 10px;
             width: 100%;
-            max-width: 800px;
+            max-width: min(800px, calc(55vh * 4 / 3)); /* 寬度與畫布連動貼齊 */
         }
 
         button {
-            padding: 12px 24px;
+            padding: 10px 20px;
             font-size: 1rem;
             cursor: pointer;
             border: none;
@@ -102,7 +106,7 @@
             transition: background-color 0.2s, transform 0.1s;
             box-shadow: 0 4px 6px rgba(0, 0, 0, 0.1);
             flex: 1 1 auto;
-            min-width: 100px;
+            min-width: 90px;
         }
 
         button:hover:not(:disabled) {
@@ -116,6 +120,15 @@
             cursor: not-allowed;
             box-shadow: none;
             transform: none;
+        }
+
+        /* --- 針對橫向平板或高度極小的螢幕啟動緊湊模式 --- */
+        @media (max-height: 700px) {
+            header { margin-bottom: 8px; }
+            h1 { font-size: 20px; }
+            #instruction-box { padding: 8px; margin-top: 8px; font-size: 0.95rem; }
+            #controls { margin-top: 8px; gap: 8px; }
+            button { padding: 8px 16px; font-size: 0.9rem; }
         }
 
         .blob {
@@ -235,7 +248,7 @@
     <script>
         let currentState = 0;
 
-        // 有絲分裂只有 5 個狀態 (0 ~ 4)
+        // 有絲分裂的 5 個狀態，包含您最終要求修改的完美重組與圓形子細胞 (State 4)
         const stateData = [
             {   // State 0
                 infoText: "State 0: 準備期 (4條單體染色體, 基因型 AaBb)",
@@ -259,35 +272,35 @@
                     { cx: 400, cy: 300, r: 260 }, { cx: 400, cy: 300, r: 260 }
                 ]
             },
-            {   // State 2: 最大的對比點！染色體排成一直線，沒有配對
+            {   // State 2
                 infoText: "State 2: 分裂中期 - 所有染色體單獨排列於細胞中央 (無同源配對)",
-                chrA: { x: 400, y: 150, rot: 0, spread: 15, splitDist: 0 }, // 將 Y 座標往中央靠攏
+                chrA: { x: 400, y: 150, rot: 0, spread: 15, splitDist: 0 }, 
                 chrb: { x: 400, y: 250, rot: 0, spread: 15, splitDist: 0 },
                 chra: { x: 400, y: 350, rot: 0, spread: 15, splitDist: 0 },
                 chrB: { x: 400, y: 450, rot: 0, spread: 15, splitDist: 0 },
-                blobs: [ // 細胞準備往左右拉伸
+                blobs: [
                     { cx: 380, cy: 300, r: 250 }, { cx: 380, cy: 300, r: 250 },
                     { cx: 420, cy: 300, r: 250 }, { cx: 420, cy: 300, r: 250 }
                 ]
             },
-            {   // State 3: 拉開的是姊妹染色分體 (X 裂成兩半)
+            {   // State 3
                 infoText: "State 3: 分裂後期 - 著絲點斷裂，姊妹染色分體分離並移向兩極",
-                chrA: { x: 400, y: 150, rot: 0, spread: 0, splitDist: 140 }, // 同步修改 Y 座標
+                chrA: { x: 400, y: 150, rot: 0, spread: 0, splitDist: 140 }, 
                 chrb: { x: 400, y: 250, rot: 0, spread: 0, splitDist: 140 },
                 chra: { x: 400, y: 350, rot: 0, spread: 0, splitDist: 140 },
                 chrB: { x: 400, y: 450, rot: 0, spread: 0, splitDist: 140 },
-                blobs: [ // 向左右嚴重拉長，產生牽絲分離感。圓球改為上下疊放，形成長橢圓
+                blobs: [ 
                     { cx: 250, cy: 220, r: 200 }, { cx: 250, cy: 380, r: 200 },
                     { cx: 550, cy: 220, r: 200 }, { cx: 550, cy: 380, r: 200 }
                 ]
             },
-            {   // State 4: 只產生 2 個細胞，基因型與原先一樣是 AaBb
+            {   // State 4
                 infoText: "State 4: 分裂完成！產生 2 個雙套 (2n) 子細胞，大小恢復圓形，染色體重組為雙排",
                 chrA: { x: 360, y: 220, rot: 0, spread: 0, splitDist: 200 }, 
                 chra: { x: 440, y: 220, rot: 0, spread: 0, splitDist: 200 },
                 chrB: { x: 360, y: 380, rot: 0, spread: 0, splitDist: 200 },
                 chrb: { x: 440, y: 380, rot: 0, spread: 0, splitDist: 200 },
-                blobs: [ // 完全斷裂成 2 個細胞 (圓球座標歸中疊合，瞬間恢復成完美正圓形)
+                blobs: [ 
                     { cx: 200, cy: 300, r: 180 }, { cx: 200, cy: 300, r: 180 },
                     { cx: 600, cy: 300, r: 180 }, { cx: 600, cy: 300, r: 180 }
                 ]
@@ -337,7 +350,6 @@
                 }
 
                 if (chrConf.splitDist > 0) {
-                    // 有絲分裂的重要改動：姊妹染色分體是向「左右 (X軸)」分離，而非上下 (Y軸)
                     sisLeft.style.transform = `translate(-${chrConf.splitDist}px, 0px) rotate(0deg)`;
                     sisRight.style.transform = `translate(${chrConf.splitDist}px, 0px) rotate(0deg)`;
                 } else {
@@ -347,7 +359,6 @@
             });
 
             document.getElementById('btn-prev').disabled = (stateIndex === 0);
-            // 有絲分裂的最終狀態是 State 4
             document.getElementById('btn-next').disabled = (stateIndex === 4);
         }
 
@@ -370,6 +381,7 @@
             renderState(currentState);
         });
 
+        // 初始化
         renderState(currentState);
     </script>
 </body>
