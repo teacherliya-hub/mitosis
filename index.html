@@ -24,7 +24,7 @@
             display: flex;
             flex-direction: column;
             align-items: center;
-            justify-content: center; /* 讓整體內容在有額外空間時垂直置中 */
+            justify-content: center;
             margin: 0;
             padding: 2vmin;
             box-sizing: border-box;
@@ -48,8 +48,6 @@
             h1 { font-size: 26px; }
         }
 
-        /* --- 響應式魔法核心 --- 
-           保證寬度最大不超過 800px，且高度絕對不超過螢幕的 55vh (留空間給標題和按鈕) */
         #canvas-container {
             width: 100%;
             max-width: min(800px, calc(55vh * 4 / 3)); 
@@ -70,7 +68,7 @@
 
         #instruction-box {
             width: 100%;
-            max-width: min(800px, calc(55vh * 4 / 3)); /* 寬度與畫布連動貼齊 */
+            max-width: min(800px, calc(55vh * 4 / 3)); 
             background-color: #bbf7d0; 
             color: #14532d;
             padding: 14px;
@@ -91,7 +89,7 @@
             justify-content: center;
             gap: 10px;
             width: 100%;
-            max-width: min(800px, calc(55vh * 4 / 3)); /* 寬度與畫布連動貼齊 */
+            max-width: min(800px, calc(55vh * 4 / 3)); 
         }
 
         button {
@@ -122,7 +120,6 @@
             transform: none;
         }
 
-        /* --- 針對橫向平板或高度極小的螢幕啟動緊湊模式 --- */
         @media (max-height: 700px) {
             header { margin-bottom: 8px; }
             h1 { font-size: 20px; }
@@ -175,7 +172,8 @@
     <div id="canvas-container">
         <svg viewBox="0 0 800 600">
             <defs>
-                <filter id="goo" x="-20%" y="-20%" width="140%" height="140%">
+                <!-- 解決殘存黑線的核心：加入 filterUnits="userSpaceOnUse" 並給予絕對的寬高緩衝區 -->
+                <filter id="goo" filterUnits="userSpaceOnUse" x="-200" y="-200" width="1200" height="1000" color-interpolation-filters="sRGB">
                     <feGaussianBlur in="SourceGraphic" stdDeviation="12" result="blur" />
                     <feColorMatrix in="blur" mode="matrix" values="
                         1 0 0 0 0  
@@ -205,7 +203,6 @@
             </defs>
 
             <g filter="url(#goo)">
-                <!-- 用於有絲分裂的 4 個 Blob，最終會分裂成左右 2 個細胞 -->
                 <circle id="blob1" class="blob" />
                 <circle id="blob2" class="blob" />
                 <circle id="blob3" class="blob" />
@@ -248,9 +245,8 @@
     <script>
         let currentState = 0;
 
-        // 有絲分裂的 5 個狀態，包含您最終要求修改的完美重組與圓形子細胞 (State 4)
         const stateData = [
-            {   // State 0
+            {   
                 infoText: "State 0: 準備期 (4條單體染色體, 基因型 AaBb)",
                 chrA: { x: 335, y: 245, rot: -25, spread: 0, splitDist: 0 },
                 chra: { x: 460, y: 240, rot: 35,  spread: 0, splitDist: 0 },
@@ -261,7 +257,7 @@
                     { cx: 400, cy: 300, r: 260 }, { cx: 400, cy: 300, r: 260 }
                 ]
             },
-            {   // State 1
+            {   
                 infoText: "State 1: 染色體複製 (DNA 數量加倍，形成 X 型)",
                 chrA: { x: 335, y: 245, rot: -25, spread: 15, splitDist: 0 },
                 chra: { x: 460, y: 240, rot: 35,  spread: 15, splitDist: 0 },
@@ -272,7 +268,7 @@
                     { cx: 400, cy: 300, r: 260 }, { cx: 400, cy: 300, r: 260 }
                 ]
             },
-            {   // State 2
+            {   
                 infoText: "State 2: 分裂中期 - 所有染色體單獨排列於細胞中央 (無同源配對)",
                 chrA: { x: 400, y: 150, rot: 0, spread: 15, splitDist: 0 }, 
                 chrb: { x: 400, y: 250, rot: 0, spread: 15, splitDist: 0 },
@@ -283,7 +279,7 @@
                     { cx: 420, cy: 300, r: 250 }, { cx: 420, cy: 300, r: 250 }
                 ]
             },
-            {   // State 3
+            {   
                 infoText: "State 3: 分裂後期 - 著絲點斷裂，姊妹染色分體分離並移向兩極",
                 chrA: { x: 400, y: 150, rot: 0, spread: 0, splitDist: 140 }, 
                 chrb: { x: 400, y: 250, rot: 0, spread: 0, splitDist: 140 },
@@ -294,7 +290,7 @@
                     { cx: 550, cy: 220, r: 200 }, { cx: 550, cy: 380, r: 200 }
                 ]
             },
-            {   // State 4
+            {   
                 infoText: "State 4: 分裂完成！產生 2 個雙套 (2n) 子細胞，大小恢復圓形，染色體重組為雙排",
                 chrA: { x: 360, y: 220, rot: 0, spread: 0, splitDist: 200 }, 
                 chra: { x: 440, y: 220, rot: 0, spread: 0, splitDist: 200 },
@@ -381,8 +377,9 @@
             renderState(currentState);
         });
 
-        // 初始化
         renderState(currentState);
     </script>
 </body>
 </html>
+
+
